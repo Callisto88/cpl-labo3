@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! /usr/bin/env python
 
 # Set log level to benefit from Scapy warnings
 import logging
@@ -20,11 +20,16 @@ print(hash)
 
 def CreateLPDU(dst,src,type,frag):
     name = "Gros protocole de sa raclette de mes 2"
-    champs = [ ShortField("dst", 4),
-               ShortField("src", 3),
-               ShortField("type", 1),
-               ShortField("frag", 3) ]
-    print(dst)
+    champs = [ ShortField("dst","1111"),
+               ShortField("src","101"),
+               ShortField("type","1"),
+               ShortField("frag","0") ]
+    print("Destination : " + dst)
+    print("Source : " + src)
+    print("Type : " + type)
+    print("Fragment : " + frag)
+
+    return champs
 
 def SendPPDU(LPDU):
     src = '00:00:00:00:00:00'
@@ -60,7 +65,8 @@ def Defragment():
     # complement fragment fn
 
 def make_test():
-    return Ether()/IP()/CreateLPDU(dst="1101",src="011",type="1",frag="110")
+    return Ether()/IP()/CreateLPDU("1101","011","1","0")
 
 if __name__ == "__main__":
+    make_test();
     interact(mydict=globals(), mybanner="CPL Labo")
