@@ -1,3 +1,21 @@
+#! /usr/bin/env python
+
+# Set log level to benefit from Scapy warnings
+import logging
+
+# debug on os x
+# import os
+# print(os.sys.path)
+logging.getLogger("scapy").setLevel(1)
+
+# Import all modules
+from scapy.all import *
+
+import crc8
+hash = crc8.crc8()
+hash.update(b'123')
+assert hash.hexdigest() == 'c0'
+
 #----------------------- Scapy CPL -----------------------
 # Envoyer des paquets avec payload
 sendp(Ether()/"Hello World")
@@ -10,8 +28,7 @@ Ether(src = "11:22:33:44:55:66", dst = "ff:ff:ff:ff:ff:ff", type = 0x0801)
 
 # Sniffer des paquets (ctrl+c pour arrêter)
 a = sniff(filter = "ether src 000000000000") # avec adresse de source 00:00:00:00:00:00
-a = sniff(filter = "ether dst ffffffffffff") # avec adresse de destination
-ff:ff:ff:ff:ff:ff
+a = sniff(filter = "ether dst ffffffffffff") # avec adresse de destination ff:ff:ff:ff:ff:ff
 a = sniff(filter = "ether proto 0x0801") # avec type de trame 0x0801
 
 # En travaillant directement sur les datas (l'adresse source est du 6 au 12ème octet dans une trame Ethernet):
@@ -26,19 +43,23 @@ a[1].show()
 #------------------ Exemples avec python ------------------
 # N'affiche que les paquets avec une certaine adresse de destination (si pas filtré avant)
 for p in a:
-  if p.dst == "ff:ff:ff:ff:ff:ff":
-    p.show()
-    print "--------------------------------"
+    if p.dst == "ff:ff:ff:ff:ff:ff":
+        p.show()
+        print("--------------------------------")
 
 # N'affiche que les paquets contenant une certaine séquence dans le payload
-if p.load.__contains__('100001'): # Pourrait être un flag
+if p.load.__contains__('100001'):   # Pourrait être un flag
+    print("salut")
 
 # N'affiche que les paquets dont le payload commence par une certaine la séquence
-if p.load[1:4] == "1101" : # Pourrait être une adresse de destination
+# Pourrait être une adresse de destination
 
-# Lancer une foncton pour chaque paquet sniffé, ici affiche les paquets au fur et à
-mesure qu'ils arrivent
+if p.load[1:4] == "1101":
+    print(p.load)
+
+# Lancer une foncton pour chaque paquet sniffé, ici affiche les paquets au fur et à mesure qu'ils arrivent
 def customAction(packet):
     packet.show()
-    print "--------------------------------"
+    print("--------------------------------")
+
 sniff(filter = "ether src 000000000000 and ether dst = ffffffffffff", prn = customAction)
