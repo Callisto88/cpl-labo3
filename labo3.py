@@ -30,27 +30,8 @@ hash = crc8.crc8()
 # Manual input
 # seq = input("Entrez la suite de bits de la séquence : ")
 
-# Ecoute de paquets broadcast
-a = sniff(filter = "ether dst ffffffffffff") # avec adresse de destination ff:ff:ff:ff:ff:ff
-for p in a:
-    if p.dst == "ff:ff:ff:ff:ff:ff":
-        p.show()
-        print("--------------------------------")
-
 # print("Séquence reçue : " + str(seq))
 # print("Découpage de la séquence selon custom protocole : \n")
-
-dst = p.load[0:5]
-src = p.load[5:9]
-type = p.load[9:11]
-frag = p.load[11:13]
-sn = p.load[12:14]
-
-print("Destination : " + dst)
-print("Source : " + src)
-print("Type : " + type)
-print("Fragment : " + frag)
-print("Séquence No : " + sn)
 
 '''
 Définition des fonctions
@@ -61,6 +42,35 @@ Définition des fonctions
 - Fragment
 - Defragment
 '''
+
+# Basic function to display packet fields
+def DisplayPacket(p):
+    print("---------------------")
+    p.show()    # Packet summary
+
+    # Spliting the load
+    dst = p.load[0:5]
+    src = p.load[5:9]
+    type = p.load[9:11]
+    frag = p.load[11:13]
+    sn = p.load[13:17]
+    size = p.load[17:23]
+
+    print("---------------------")
+    print("Splitting frame's load\n")
+    print("Destination : " + dst[0:4] + "[" + dst[4:5] + "]")
+    print("Source : " + src[0:3] + "[" + src[3:4] + "]")
+    print("Type : " + type[0:1] + "[" + type[1:2] + "]")
+    print("Fragment : " + frag[0:1] + "[" + frag[1:2] + "]")
+    print("Séquence No : " + sn[0:3] + "[" + sn[3:4] + "]")
+    print("Taille : " + size[0:5] + "[" + size[5:6] + "]")
+
+    # TODO : Découpage du payload selon la taille
+    # TODO : Découpage des 8 derniers bits de FCS-CRC
+    # print("Payload : " + sn[0:3] + "[" + sn[3:4] + "]")
+    # print("FCS-CRC : " + sn[0:3] + "[" + sn[3:4] + "]")
+    print("---------------------")
+
 def CreateLPDU(dst,src,type,frag):
     name = "CPL_Ansermoz_deBourgues"
     champs = [ ShortField("dst","1111"),
@@ -91,16 +101,23 @@ def CreateLSDU():
     # detect rafales de 2 ou 3 erreurs < 8
     # //
 
-def ReceivePPDU():
-    name = "reveive PPDU"
+'''
+But de la fonction: Filtrer les PPDU qui nous sont destines et les stocker dans un tableau
+Fonction complementaire du script SendPPDU
+'''
+def ReceivePPDU(packet):
+    print("ReceivePPDU triggered by sniff")
+    DisplayPacket(packet)
 
-    ## But de la fonction: Filtrer les PPDU qui nous sont destines et les stocker dans un tableau
-    #     ## Fonction complementaire du script SendPPDU
+    tabFrame = []
+    tabFrame.append(packet);
 
+'''
+But de la fonction: fragmenter un NPDUs de maximum 50 octets en fragments de longueur d'au maximum 21 octets.
+Arguments d'entree : Une suite d'octets ascii representant les bits de la NPDU. Donnee par le personnel enseignant
+'''
 def Fragment():
     name = "expect frags"
-    # But de la fonction: fragmenter un NPDUs de maximum 50 octets en fragments de longueur d'au maximum 21 octets.
-    # Arguments d'entree : Une suite d'octets ascii representant les bits de la NPDU. Donnee par le personnel enseignant
 
     # Sortie : Fragments d'au plus 21 octets.
 
@@ -110,6 +127,14 @@ def Defragment():
 
 def make_test():
     return Ether()/IP()/CreateLPDU("1101","011","1","0")
+
+
+# Ecoute de paquets broadcast
+a = sniff(filter="ether src b8e856069eaa and ether dst ffffffffffff", prn=ReceivePPDU)
+for p in a:
+    if p.dst == "ff:ff:ff:ff:ff:ff":
+        p.show()
+        print("--------------------------------")
 
 #----------------------- Scapy CPL -----------------------
 # Envoyer des paquets avec payload
