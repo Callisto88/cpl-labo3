@@ -86,7 +86,7 @@ def CreateLPDU(dst,src,type,frag,data):
 	if sn != 0 and (sn % 7) == 0 :
 		sn = 0
 	else :
-		sn++
+		sn += 1
 	
 	lpdu = []
 	lpdu.append(dst)
@@ -106,16 +106,15 @@ def CreateLPDU(dst,src,type,frag,data):
 	lpdu.append(Parity(crc8))
 	
 	lpduSent[sn] = lpdu
-
-    return lpdu
-
+	
+	return lpdu
 
 #fct parité paire : Retourne le bit de parité du champ
 def Parity(field):
 	count = 0
 	for c in field:
 		if(c == '1'):
-			count++
+			count += 1
 	
 	return str(count % 2)
 
