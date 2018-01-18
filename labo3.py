@@ -83,7 +83,7 @@ def CreateLPDU(dst,src,type,frag,data):
 	hash.update(data)
 	size = len(data)
 	
-	if sn != 0 && (sn % 7) == 0 :
+	if sn != 0 and (sn % 7) == 0 :
 		sn = 0
 	else :
 		sn++
@@ -117,7 +117,7 @@ def Parity(field):
 		if(c == '1'):
 			count++
 	
-	return count % 2
+	return str(count % 2)
 
 
 def SendPPDU(LPDU):
