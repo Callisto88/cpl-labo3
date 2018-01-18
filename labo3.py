@@ -52,6 +52,10 @@ class trame:
         self.sn = 0
         self.size = 0
 
+# variable globales SN (sequence number), receivedWindows, sendWindows
+sn = 0
+lpduSent = []
+lpduRec = []
 
 # Basic function to display packet fields
 def DisplayPacket(trm):
@@ -73,18 +77,48 @@ def DisplayPacket(trm):
     # print("FCS-CRC : " + sn[0:3] + "[" + sn[3:4] + "]")
     print("---------------------")
 
-def CreateLPDU(dst,src,type,frag):
-    name = "CPL_Ansermoz_deBourgues"
-    champs = [ ShortField("dst","1111"),
-               ShortField("src","101"),
-               ShortField("type","1"),
-               ShortField("frag","0") ]
-    print("Destination : " + dst)
-    print("Source : " + src)
-    print("Type : " + type)
-    print("Fragment : " + frag)
+# data max length 27 bits
+def CreateLPDU(dst,src,type,frag,data):
 
-    return champs
+	hash.update(data)
+	size = len(data)
+	
+	if sn != 0 && (sn % 7) == 0 :
+		sn = 0
+	else :
+		sn++
+	
+	lpdu = []
+	lpdu.append(dst)
+	lpdu.append(Parity(dst))
+	lpdu.append(src)
+	lpdu.append(Parity(src))
+	lpdu.append(type)
+	lpdu.append(Parity(type))
+	lpdu.append(frag)
+	lpdu.append(Parity(frag))
+	lpdu.append("{0:b}".format(sn))
+	lpdu.append(Parity(sn))
+	lpdu.append("{0:b}".format(size))
+	lpdu.append(Parity(size))
+	lpdu.append(data)
+	lpdu.append(str(hash.hexdigest()))
+	lpdu.append(Parity(crc8))
+	
+	lpduSent[sn] = lpdu
+
+    return lpdu
+
+
+#fct parité paire : Retourne le bit de parité du champ
+def Parity(field):
+	count = 0
+	for c in field:
+		if(c == '1'):
+			count++
+	
+	return count % 2
+
 
 def SendPPDU(LPDU):
     src = '00:00:00:00:00:00'
