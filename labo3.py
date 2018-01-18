@@ -77,6 +77,16 @@ def DisplayPacket(trm):
     # print("FCS-CRC : " + sn[0:3] + "[" + sn[3:4] + "]")
     print("---------------------")
 
+	
+#fct parité paire : Retourne le bit de parité du champ
+def Parity(field):
+	count = 0
+	for c in field:
+		if(c == '1'):
+			count += 1
+	
+	return str(count % 2)
+	
 # data max length 27 bits
 def CreateLPDU(dst,src,type,frag,data):
 
@@ -87,6 +97,8 @@ def CreateLPDU(dst,src,type,frag,data):
 		sn = 0
 	else :
 		sn += 1
+		
+	print(sn)
 	
 	lpdu = []
 	lpdu.append(dst)
@@ -97,26 +109,38 @@ def CreateLPDU(dst,src,type,frag,data):
 	lpdu.append(Parity(type))
 	lpdu.append(frag)
 	lpdu.append(Parity(frag))
-	lpdu.append("{0:b}".format(sn))
-	lpdu.append(Parity(sn))
+	lpdu.append(str(sn))
+	lpdu.append(Parity(str(sn)))
 	lpdu.append("{0:b}".format(size))
-	lpdu.append(Parity(size))
+	lpdu.append(Parity("{0:b}".format(size)))
 	lpdu.append(data)
 	lpdu.append(str(hash.hexdigest()))
 	lpdu.append(Parity(crc8))
 	
+	# lpdu = ""
+	# lpdu += dst
+	# lpdu += Parity(dst)
+	# lpdu += src
+	# lpdu += Parity(src)
+	# lpdu += type
+	# lpdu += Parity(type)
+	# lpdu += frag
+	# lpdu += Parity(frag)
+	# lpdu += str(sn)
+	# lpdu += Parity(str(sn))
+	# lpdu += "{0:b}".format(size)
+	# lpdu += Parity("{0:b}".format(size))
+	# lpdu += data
+	# lpdu += (str(hash.hexdigest()))
+	# lpdu += Parity(str(hash.hexdigest()))
+	
+	slpdu = ''.join(lpdu)
+	
 	lpduSent[sn] = lpdu
 	
-	return lpdu
-
-#fct parité paire : Retourne le bit de parité du champ
-def Parity(field):
-	count = 0
-	for c in field:
-		if(c == '1'):
-			count += 1
+	print(lpdu)
 	
-	return str(count % 2)
+	return lpdu
 
 
 def SendPPDU(LPDU):
@@ -181,11 +205,14 @@ def make_test():
 
 
 # reçoit tout le traffic et l'envoi en paramètre à ReceivePPDU
-a = sniff(filter="ether dst ffffffffffff", prn=ReceivePPDU)
+# a = sniff(filter="ether dst ffffffffffff", prn=ReceivePPDU)
 # a = sniff(filter="ether dst ffffffffffff", prn=ReceivePPDU)
 
 #----------------------- Scapy CPL -----------------------
 # Envoyer des paquets avec payload
+if __name__ == '__main__':
+	createLPDU("0001", "010", "0", "1", "01010101")
+	
 '''
 sendp(Ether()/"Hello World")
 a = Ether()
