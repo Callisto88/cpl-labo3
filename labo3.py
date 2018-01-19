@@ -12,12 +12,13 @@
 Imports
 '''
 # Import all modules
-from scapy.all import *
-import logging
+#from scapy.all import *
+#import logging
 import crc8
+import binascii
 
 # Set log level to benefit from Scapy warnings
-logging.getLogger("scapy").setLevel(1)
+#logging.getLogger("scapy").setLevel(1)
 
 # Test CRC8
 hash = crc8.crc8()
@@ -54,8 +55,8 @@ class trame:
 
 # variable globales SN (sequence number), receivedWindows, sendWindows
 sn = 0
-lpduSent = []
 lpduRec = []
+lpduSent = [ [ None for y in range( 1 ) ] for x in range( 8 ) ]
 
 # Basic function to display packet fields
 def DisplayPacket(trm):
@@ -89,7 +90,9 @@ def Parity(field):
 	
 # data max length 27 bits
 def CreateLPDU(dst,src,type,frag,data):
-
+	global sn
+	global lpduSent
+	
 	hash.update(data)
 	size = len(data)
 	
@@ -97,8 +100,6 @@ def CreateLPDU(dst,src,type,frag,data):
 		sn = 0
 	else :
 		sn += 1
-		
-	print(sn)
 	
 	lpdu = []
 	lpdu.append(dst)
@@ -111,11 +112,11 @@ def CreateLPDU(dst,src,type,frag,data):
 	lpdu.append(Parity(frag))
 	lpdu.append(str(sn))
 	lpdu.append(Parity(str(sn)))
-	lpdu.append("{0:b}".format(size))
-	lpdu.append(Parity("{0:b}".format(size)))
+	lpdu.append(str("{0:b}".format(size)))
+	lpdu.append(Parity(str("{0:b}".format(size))))
 	lpdu.append(data)
-	lpdu.append(str(hash.hexdigest()))
-	lpdu.append(Parity(crc8))
+	lpdu.append(str(bin(int(hash.hexdigest(), 16))[2:].zfill(8)))
+	lpdu.append(Parity(str(bin(int(hash.hexdigest(), 16))[2:])))
 	
 	# lpdu = ""
 	# lpdu += dst
@@ -136,11 +137,12 @@ def CreateLPDU(dst,src,type,frag,data):
 	
 	slpdu = ''.join(lpdu)
 	
-	lpduSent[sn] = lpdu
+	print(slpdu)
 	
-	print(lpdu)
+	lpduSent[sn] = slpdu
 	
-	return lpdu
+	
+	return slpdu
 
 
 def SendPPDU(LPDU):
@@ -211,7 +213,7 @@ def make_test():
 #----------------------- Scapy CPL -----------------------
 # Envoyer des paquets avec payload
 if __name__ == '__main__':
-	createLPDU("0001", "010", "0", "1", "01010101")
+	CreateLPDU("0001", "010", "0", "1", "01010101")
 	
 '''
 sendp(Ether()/"Hello World")
