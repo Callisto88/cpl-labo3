@@ -112,7 +112,7 @@ def CreateLPDU(dst,src,type,frag,data):
 	lpdu.append(Parity(frag))
 	lpdu.append(str(sn))
 	lpdu.append(Parity(str(sn)))
-	lpdu.append(str("{0:b}".format(size)))
+	lpdu.append(str("{0:b}".format(size).zfill(4)))
 	lpdu.append(Parity(str("{0:b}".format(size))))
 	lpdu.append(data)
 	lpdu.append(str(bin(int(hash.hexdigest(), 16))[2:].zfill(8)))
@@ -213,7 +213,7 @@ def make_test():
 #----------------------- Scapy CPL -----------------------
 # Envoyer des paquets avec payload
 if __name__ == '__main__':
-	CreateLPDU("0001", "010", "0", "1", "01010101")
+	CreateLPDU("0001", "010", "0", "1", "010101")
 	
 '''
 sendp(Ether()/"Hello World")
