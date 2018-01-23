@@ -217,17 +217,18 @@ if __name__ == '__main__':
     dst = "0100"
     src = "001"
     PPDUtoSend = "0001010100010101001010101001010000100111"
+	maxSizePayload = 28
     
     print(PPDUtoSend)
     lengthPPDU = len(PPDUtoSend)
     
-    nbFrag = int(math.ceil(float(lengthPPDU) / 27))
+    nbFrag = int(math.ceil(float(lengthPPDU) / maxSizePayload))
     print(nbFrag)
     for i in range(nbFrag):
         if i == nbFrag - 1:
-            CreateLPDU(dst, src, "0", "0", PPDUtoSend[i * 27:(i + 1) * 27])
+            CreateLPDU(dst, src, "0", "0", PPDUtoSend[i * maxSizePayload:(i + 1) * maxSizePayload])
         else:
-            CreateLPDU(dst, src, "0", "1", PPDUtoSend[i * 27:(i + 1) * 27])
+            CreateLPDU(dst, src, "0", "1", PPDUtoSend[i * maxSizePayload:(i + 1) * maxSizePayload])
     
     # CreateLPDU("0001", "010", "0", "1", "010101")
     
