@@ -97,10 +97,6 @@ def CreateLPDU(dst,src,type,frag,data):
     hash.update(data)
     size = len(data)
     
-    if sn != 0 and (sn % 7) == 0 :
-        sn = 0
-    else :
-        sn += 1
     
     lpdu = []
     lpdu.append(dst)
@@ -139,9 +135,14 @@ def CreateLPDU(dst,src,type,frag,data):
     slpdu = ''.join(lpdu)
     
     print(slpdu)
+    print(sn)
     
     lpduSent[sn] = slpdu
     
+    if sn != 0 and (sn % 7) == 0 :
+        sn = 0
+    else :
+        sn += 1
     
     return slpdu
 
@@ -216,7 +217,7 @@ def make_test():
 if __name__ == '__main__':
     dst = "0100"
     src = "001"
-    PPDUtoSend = "0001010100010101001010101001010000100111"
+    PPDUtoSend = "00010101000101010010101010010010010000111010100010110100111"
     maxSizePayload = 28
     
     print(PPDUtoSend)
