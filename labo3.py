@@ -24,6 +24,9 @@ import math
 # Test CRC8
 hash = crc8.crc8()
 
+# Constantes
+MAX_SIZE_PAYLOAD = 28
+
 # myvar = input("Entrez une chaîne pour générer son CRC8 : ")
 # hash.update(str(myvar))
 # print("CRC calculated for [ " + str(myvar) + " ] is => " + str(hash.hexdigest()))
@@ -93,6 +96,8 @@ def Parity(field):
 
 # data max length 27 bits
 def CreateLPDU(dst,src,type,frag,data):
+    print(data);
+
     global sn
     global lpduSent
 
@@ -136,8 +141,8 @@ def CreateLPDU(dst,src,type,frag,data):
 
     slpdu = ''.join(lpdu)
 
-    print(slpdu)
-    print(sn)
+    # print(slpdu)
+    # print(sn)
 
     lpduSent[sn] = slpdu
 
@@ -147,7 +152,6 @@ def CreateLPDU(dst,src,type,frag,data):
         sn += 1
 
     return slpdu
-
 
 def SendPPDU(LPDU):
     src = '00:00:00:00:00:00'
@@ -206,19 +210,35 @@ def ReceivePPDU(p):
 '''
 But de la fonction: fragmenter un NPDUs de maximum 60 bits en fragments de longueur d'au maximum 27 bits
 Arguments d'entree : Une suite d'octets ascii representant les bits de la NPDU. Donnee par le personnel enseignant
+Sortie : Fragments d'au plus 27 bits
 '''
-def Fragment():
-    name = "expect frags"
 
-    # Sortie : Fragments d'au plus 27 bits
+
+def Fragment(NPDU):
+    # assert we have max. 60 bits
+    # max payload size is defined as constants in the header
+
+    lengthNPDU = len(NPDU)
+    print(NPDU + " [ length = " + str(lengthNPDU) + " ]")
+
+    nbFrag = int(math.ceil(float(lengthNPDU) / MAX_SIZE_PAYLOAD))
+    print("Nombres de fragments : " + str(nbFrag))
+
+    i = 0
+    while nbFrag > 1:
+        payloadRange = NPDU[i * MAX_SIZE_PAYLOAD:(i + 1) * MAX_SIZE_PAYLOAD]
+        print("Fragment #" + str(i) + " : [ " + str((i * MAX_SIZE_PAYLOAD)) + " : " + str(
+            ((i + 1) * MAX_SIZE_PAYLOAD)) + " ] => " + str(payloadRange))
+        del payloadRange
+        i = i + 1
+        nbFrag = nbFrag - 1
+
+    print("Fragment #" + str(i) + " : [ " + str((i * MAX_SIZE_PAYLOAD)) + " : " + str(len(NPDU)) + " ] => " + str(
+        NPDU[i * MAX_SIZE_PAYLOAD:(i + 1) * MAX_SIZE_PAYLOAD]))
 
 def Defragment():
     name = "complement frag"
     # complement fragment fn
-
-def make_test():
-    return Ether()/IP()/CreateLPDU("1101","011","1","0")
-
 
 # reçoit tout le traffic et l'envoi en paramètre à ReceivePPDU
 # a = sniff(filter="ether dst ffffffffffff", prn=ReceivePPDU)
@@ -229,21 +249,32 @@ def make_test():
 if __name__ == '__main__':
     dst = "0100"
     src = "001"
-    PPDUtoSend = "00010101000101010010101010010010010000111010100010110100111"
-    maxSizePayload = 28
 
-    print(PPDUtoSend)
+    NPDU = "00010101000101010010101010010010010000111010100010110100111"  # 59 bits
+    Fragment(NPDU)
+
+'''
+    PPDUtoSend = "00010101000101010010101010010010010000111010100010110100111"  # 59 bits
     lengthPPDU = len(PPDUtoSend)
+    print(PPDUtoSend + " [ length = " + str(lengthPPDU) + " ]")
 
-    nbFrag = int(math.ceil(float(lengthPPDU) / maxSizePayload))
-    print(nbFrag)
-    for i in range(nbFrag):
-        if i == nbFrag - 1:
-            CreateLPDU(dst, src, "0", "0", PPDUtoSend[i * maxSizePayload:(i + 1) * maxSizePayload])
-        else:
-            CreateLPDU(dst, src, "0", "1", PPDUtoSend[i * maxSizePayload:(i + 1) * maxSizePayload])
+    nbFrag = int(math.ceil(float(lengthPPDU) / MAX_SIZE_PAYLOAD))
+    print("Nombres de fragments : " + str(nbFrag))
+
+    i = 0
+    while nbFrag > 1:
+        print("Fragment #" + str(nbFrag) + ", with payload range as : [ " + str((i * MAX_SIZE_PAYLOAD)) + " : " + str(((i + 1) * MAX_SIZE_PAYLOAD)) + " ]" )
+        payloadRange = PPDUtoSend[i * MAX_SIZE_PAYLOAD:(i + 1) * MAX_SIZE_PAYLOAD]
+        CreateLPDU(dst, src, "0", "0", payloadRange)
+        del payloadRange
+        i = i+1
+        nbFrag = nbFrag-1
+
+    print("Last fragment : [ " + str((i * MAX_SIZE_PAYLOAD)) + " : " + str(len(PPDUtoSend)) + " ]")
+    CreateLPDU(dst, src, "0", "1", PPDUtoSend[i * MAX_SIZE_PAYLOAD:(i + 1) * MAX_SIZE_PAYLOAD])
 
     # CreateLPDU("0001", "010", "0", "1", "010101")
+'''
 
 '''
 sendp(Ether()/"Hello World")
