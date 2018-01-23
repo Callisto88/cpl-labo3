@@ -16,6 +16,7 @@ Imports
 #import logging
 import crc8
 import binascii
+import math
 
 # Set log level to benefit from Scapy warnings
 #logging.getLogger("scapy").setLevel(1)
@@ -78,71 +79,71 @@ def DisplayPacket(trm):
     # print("FCS-CRC : " + sn[0:3] + "[" + sn[3:4] + "]")
     print("---------------------")
 
-	
+    
 #fct parité paire : Retourne le bit de parité du champ
 def Parity(field):
-	count = 0
-	for c in field:
-		if(c == '1'):
-			count += 1
-	
-	return str(count % 2)
-	
+    count = 0
+    for c in field:
+        if(c == '1'):
+            count += 1
+    
+    return str(count % 2)
+    
 # data max length 27 bits
 def CreateLPDU(dst,src,type,frag,data):
-	global sn
-	global lpduSent
-	
-	hash.update(data)
-	size = len(data)
-	
-	if sn != 0 and (sn % 7) == 0 :
-		sn = 0
-	else :
-		sn += 1
-	
-	lpdu = []
-	lpdu.append(dst)
-	lpdu.append(Parity(dst))
-	lpdu.append(src)
-	lpdu.append(Parity(src))
-	lpdu.append(type)
-	lpdu.append(Parity(type))
-	lpdu.append(frag)
-	lpdu.append(Parity(frag))
-	lpdu.append(str("{0:b}".format(sn).zfill(3)))
-	lpdu.append(Parity(str("{0:b}".format(sn))))
-	lpdu.append(str("{0:b}".format(size).zfill(4)))
-	lpdu.append(Parity(str("{0:b}".format(size))))
-	lpdu.append(data)
-	lpdu.append(str(bin(int(hash.hexdigest(), 16))[2:].zfill(8)))
-	lpdu.append(Parity(str(bin(int(hash.hexdigest(), 16))[2:])))
-	
-	# lpdu = ""
-	# lpdu += dst
-	# lpdu += Parity(dst)
-	# lpdu += src
-	# lpdu += Parity(src)
-	# lpdu += type
-	# lpdu += Parity(type)
-	# lpdu += frag
-	# lpdu += Parity(frag)
-	# lpdu += str(sn)
-	# lpdu += Parity(str(sn))
-	# lpdu += "{0:b}".format(size)
-	# lpdu += Parity("{0:b}".format(size))
-	# lpdu += data
-	# lpdu += (str(hash.hexdigest()))
-	# lpdu += Parity(str(hash.hexdigest()))
-	
-	slpdu = ''.join(lpdu)
-	
-	print(slpdu)
-	
-	lpduSent[sn] = slpdu
-	
-	
-	return slpdu
+    global sn
+    global lpduSent
+    
+    hash.update(data)
+    size = len(data)
+    
+    if sn != 0 and (sn % 7) == 0 :
+        sn = 0
+    else :
+        sn += 1
+    
+    lpdu = []
+    lpdu.append(dst)
+    lpdu.append(Parity(dst))
+    lpdu.append(src)
+    lpdu.append(Parity(src))
+    lpdu.append(type)
+    lpdu.append(Parity(type))
+    lpdu.append(frag)
+    lpdu.append(Parity(frag))
+    lpdu.append(str("{0:b}".format(sn).zfill(3)))
+    lpdu.append(Parity(str("{0:b}".format(sn))))
+    lpdu.append(str("{0:b}".format(size).zfill(4)))
+    lpdu.append(Parity(str("{0:b}".format(size))))
+    lpdu.append(data)
+    lpdu.append(str(bin(int(hash.hexdigest(), 16))[2:].zfill(8)))
+    lpdu.append(Parity(str(bin(int(hash.hexdigest(), 16))[2:])))
+    
+    # lpdu = ""
+    # lpdu += dst
+    # lpdu += Parity(dst)
+    # lpdu += src
+    # lpdu += Parity(src)
+    # lpdu += type
+    # lpdu += Parity(type)
+    # lpdu += frag
+    # lpdu += Parity(frag)
+    # lpdu += str(sn)
+    # lpdu += Parity(str(sn))
+    # lpdu += "{0:b}".format(size)
+    # lpdu += Parity("{0:b}".format(size))
+    # lpdu += data
+    # lpdu += (str(hash.hexdigest()))
+    # lpdu += Parity(str(hash.hexdigest()))
+    
+    slpdu = ''.join(lpdu)
+    
+    print(slpdu)
+    
+    lpduSent[sn] = slpdu
+    
+    
+    return slpdu
 
 
 def SendPPDU(LPDU):
@@ -190,13 +191,13 @@ def ReceivePPDU(p):
 
 
 '''
-But de la fonction: fragmenter un NPDUs de maximum 50 octets en fragments de longueur d'au maximum 21 octets.
+But de la fonction: fragmenter un NPDUs de maximum 60 bits en fragments de longueur d'au maximum 27 bits
 Arguments d'entree : Une suite d'octets ascii representant les bits de la NPDU. Donnee par le personnel enseignant
 '''
 def Fragment():
     name = "expect frags"
 
-    # Sortie : Fragments d'au plus 21 octets.
+    # Sortie : Fragments d'au plus 27 bits
 
 def Defragment():
     name = "complement frag"
@@ -213,8 +214,23 @@ def make_test():
 #----------------------- Scapy CPL -----------------------
 # Envoyer des paquets avec payload
 if __name__ == '__main__':
-	CreateLPDU("0001", "010", "0", "1", "010101")
-	
+    dst = "0100"
+    src = "001"
+    PPDUtoSend = "0001010100010101001010101001010000100111"
+    
+    print(PPDUtoSend)
+    lengthPPDU = len(PPDUtoSend)
+    
+    nbFrag = int(math.ceil(float(lengthPPDU) / 27))
+    print(nbFrag)
+    for i in range(nbFrag):
+        if i == nbFrag - 1:
+            CreateLPDU(dst, src, "0", "0", PPDUtoSend[i * 27:(i + 1) * 27])
+        else:
+            CreateLPDU(dst, src, "0", "1", PPDUtoSend[i * 27:(i + 1) * 27])
+    
+    # CreateLPDU("0001", "010", "0", "1", "010101")
+    
 '''
 sendp(Ether()/"Hello World")
 a = Ether()
