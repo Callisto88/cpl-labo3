@@ -53,6 +53,8 @@ class trame:
         self.frag = 0
         self.sn = 0
         self.size = 0
+        self.payload = 0
+        self.crc = 0
 
 # variable globales SN (sequence number), receivedWindows, sendWindows
 sn = 0
@@ -79,25 +81,25 @@ def DisplayPacket(trm):
     # print("FCS-CRC : " + sn[0:3] + "[" + sn[3:4] + "]")
     print("---------------------")
 
-    
+
 #fct parité paire : Retourne le bit de parité du champ
 def Parity(field):
     count = 0
     for c in field:
         if(c == '1'):
             count += 1
-    
+
     return str(count % 2)
-    
+
 # data max length 27 bits
 def CreateLPDU(dst,src,type,frag,data):
     global sn
     global lpduSent
-    
+
     hash.update(data)
     size = len(data)
-    
-    
+
+
     lpdu = []
     lpdu.append(dst)
     lpdu.append(Parity(dst))
@@ -114,7 +116,7 @@ def CreateLPDU(dst,src,type,frag,data):
     lpdu.append(data)
     lpdu.append(str(bin(int(hash.hexdigest(), 16))[2:].zfill(8)))
     lpdu.append(Parity(str(bin(int(hash.hexdigest(), 16))[2:])))
-    
+
     # lpdu = ""
     # lpdu += dst
     # lpdu += Parity(dst)
@@ -131,19 +133,19 @@ def CreateLPDU(dst,src,type,frag,data):
     # lpdu += data
     # lpdu += (str(hash.hexdigest()))
     # lpdu += Parity(str(hash.hexdigest()))
-    
+
     slpdu = ''.join(lpdu)
-    
+
     print(slpdu)
     print(sn)
-    
+
     lpduSent[sn] = slpdu
-    
+
     if sn != 0 and (sn % 7) == 0 :
         sn = 0
     else :
         sn += 1
-    
+
     return slpdu
 
 
@@ -177,13 +179,23 @@ def ReceivePPDU(p):
         # Spliting the load
         trm.dst = p.load[0:5]
 
-        if trm.dst == "00011":
+        if trm.dst == "00011" and trm.dst[-1] == Parity(trm.dst):
 
             trm.src = p.load[5:9]
             trm.type = p.load[9:11]
             trm.frag = p.load[11:13]
             trm.sn = p.load[13:17]
             trm.size = p.load[17:23]
+
+            # Verifiy parity bit for every field, if any is incorrect return
+            if trm.src[-1] != Parity(trm.src) or \
+                trm.type[-1] != Parity(trm.type) or \
+                trm.frag[-1] != Parity(trm.frag) or \
+                trm.sn[-1] != Parity(trm.sn) or \
+                trm.size[-1] != Parity(trm.size):
+
+                print("Parity check failed");
+                return
 
             tabFrame = []
             tabFrame.append(trm)
@@ -219,10 +231,10 @@ if __name__ == '__main__':
     src = "001"
     PPDUtoSend = "00010101000101010010101010010010010000111010100010110100111"
     maxSizePayload = 28
-    
+
     print(PPDUtoSend)
     lengthPPDU = len(PPDUtoSend)
-    
+
     nbFrag = int(math.ceil(float(lengthPPDU) / maxSizePayload))
     print(nbFrag)
     for i in range(nbFrag):
@@ -230,9 +242,9 @@ if __name__ == '__main__':
             CreateLPDU(dst, src, "0", "0", PPDUtoSend[i * maxSizePayload:(i + 1) * maxSizePayload])
         else:
             CreateLPDU(dst, src, "0", "1", PPDUtoSend[i * maxSizePayload:(i + 1) * maxSizePayload])
-    
+
     # CreateLPDU("0001", "010", "0", "1", "010101")
-    
+
 '''
 sendp(Ether()/"Hello World")
 a = Ether()
