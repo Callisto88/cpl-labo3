@@ -217,7 +217,7 @@ if __name__ == '__main__':
     dst = "0100"
     src = "001"
     PPDUtoSend = "0001010100010101001010101001010000100111"
-	maxSizePayload = 28
+    maxSizePayload = 28
     
     print(PPDUtoSend)
     lengthPPDU = len(PPDUtoSend)
