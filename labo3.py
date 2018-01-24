@@ -203,11 +203,11 @@ def ReceivePPDU(p):
                 trm.size[-1] != Parity(trm.size[0:5]):
 
                 print("Parity check failed");
-                # CreateLPDU("0" + trm.src[0:3], trm.dst[1:4], "1", "0", trm.sn[0:3], "1")
+                # CreateLPDU("0" + trm.src[0:3], trm.dst[1:4], "1", "1")
                 return
             else:
                 lpduRec[int(trm.sn[0:3], 2)] = trm
-                # CreateLPDU("0" + trm.src[0:3], trm.dst[1:4], "1", "0", trm.sn[0:3], "0")
+                # CreateLPDU("0" + trm.src[0:3], trm.dst[1:4], "1", "0")
 
             DisplayPacket(trm)
 
