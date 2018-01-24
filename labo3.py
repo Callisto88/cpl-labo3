@@ -15,7 +15,7 @@ Imports
 #from scapy.all import *
 #import logging
 import crc8
-import binascii
+#import binascii
 import math
 
 # Set log level to benefit from Scapy warnings
@@ -61,7 +61,7 @@ class trame:
 
 # variable globales SN (sequence number), receivedWindows, sendWindows
 sn = 0
-lpduRec = []
+lpduRec = [ [ None for y in range( 1 ) ] for x in range( 8 ) ]
 lpduSent = [ [ None for y in range( 1 ) ] for x in range( 8 ) ]
 
 # Basic function to display packet fields
@@ -172,6 +172,7 @@ But de la fonction: Filtrer les PPDU qui nous sont destines et les stocker dans 
 Fonction complementaire du script SendPPDU
 '''
 def ReceivePPDU(p):
+    global lpduRec
 
     if hasattr(p, 'load'):
 
@@ -180,31 +181,33 @@ def ReceivePPDU(p):
         # Spliting the load
         trm.dst = p.load[0:5]
 
-        if trm.dst == "00011" and trm.dst[-1] == Parity(trm.dst):
+        if trm.dst == "00011" and trm.dst[-1] == Parity(trm.dst[0:4]):
 
             trm.src = p.load[5:9]
             trm.type = p.load[9:11]
             trm.frag = p.load[11:13]
             trm.sn = p.load[13:17]
             trm.size = p.load[17:23]
-
+            
             length = int(trm.size[0:5], 2)
-
+            
             trm.payload = p.load[23:23+length]
             trm.crc = p.load[23+length:23+length+8]
 
-            # Verifiy parity bit for every field, if any is incorrect return
-            if trm.src[-1] != Parity(trm.src) or \
-                trm.type[-1] != Parity(trm.type) or \
-                trm.frag[-1] != Parity(trm.frag) or \
-                trm.sn[-1] != Parity(trm.sn) or \
-                trm.size[-1] != Parity(trm.size):
+            # add check of CRC
+            # Verifiy parity bit for every field, if any is incorrect send NACK
+            if trm.src[-1] != Parity(trm.src[0:3]) or \
+                trm.type[-1] != Parity(trm.type[0:1]) or \
+                trm.frag[-1] != Parity(trm.frag[0:1]) or \
+                trm.sn[-1] != Parity(trm.sn[0:3]) or \
+                trm.size[-1] != Parity(trm.size[0:5]):
 
                 print("Parity check failed");
+                # CreateLPDU("0" + trm.src[0:3], trm.dst[1:4], "1", "0", trm.sn[0:3], "1")
                 return
-
-            tabFrame = []
-            tabFrame.append(trm)
+            else:
+                lpduRec[int(trm.sn[0:3], 2)] = trm
+                # CreateLPDU("0" + trm.src[0:3], trm.dst[1:4], "1", "0", trm.sn[0:3], "0")
 
             DisplayPacket(trm)
 
