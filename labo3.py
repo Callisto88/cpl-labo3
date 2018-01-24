@@ -151,10 +151,12 @@ def CreateLPDU(dst, src, type, data):
     return slpdu
 
 def SendPPDU(LPDU):
-    src = '00:00:00:00:00:00'
-    dst = 'FF:FF:FF:FF:FF:FF'
+    # src = '00:00:00:00:00:00'
+    # dst = 'FF:FF:FF:FF:FF:FF'
 
     # Here scapy cmd effectiv send
+    frame = Ether() / str(LPDU)
+    sendp(frame);
 
 def CreateLSDU():
     name = "error check"
@@ -245,9 +247,21 @@ def Fragment(NPDU, output):
         NPDU[i * MAX_SIZE_PAYLOAD:(i + 1) * MAX_SIZE_PAYLOAD]))
     output.append(NPDU[i * MAX_SIZE_PAYLOAD:(i + 1) * MAX_SIZE_PAYLOAD])
 
-def Defragment():
-    name = "complement frag"
-    # complement fragment fn
+
+# complement fragment fn
+def Defragment(fragment, last, output):
+    print("\n\n====================")
+    print("Function : Defragment ")
+    print("======================")
+
+    # assert fragment size
+    # if fragment > MAX_SIZE_PAYLOAD:
+    #    return False
+
+    # Store the fragment in it
+    while last == False:
+        output = output + fragment
+        return output
 
 # reçoit tout le traffic et l'envoi en paramètre à ReceivePPDU
 # a = sniff(filter="ether dst ffffffffffff", prn=ReceivePPDU)
@@ -261,6 +275,18 @@ if __name__ == '__main__':
 
     NPDU = "00010101000101010010101010010010010000111010100010110100111"  # 59 bits
     # Fragment(NPDU)
+
+    # frag = []
+    # frag.append("0001010100010101001010101001")
+    # frag.append("0010010000111010100010110100")
+
+    # output = ""
+    # for f in frag:
+    #    Defragment(f, False, output)
+
+    # End defrag
+    # Defragment("0", True, output)
+    #print(output)
 
     CreateLPDU(dst, src, "0", NPDU)
 
