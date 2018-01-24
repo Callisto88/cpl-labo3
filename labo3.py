@@ -15,7 +15,7 @@ Imports
 #from scapy.all import *
 #import logging
 import crc8
-#import binascii
+import binascii
 import math
 
 # Set log level to benefit from Scapy warnings
@@ -92,61 +92,61 @@ def Parity(field):
     return str(count % 2)
 
 # data max length 27 bits
-def CreateLPDU(dst,src,type,frag,data):
-    print(data);
+def CreateLPDU(dst, src, type, data):
+    print("\n\n====================")
+    print("Function : CreateLPDU ")
+    print("======================")
+    print("Received from NPDU : " + str(data));
 
     global sn
     global lpduSent
+    slpdu = []
+    output = []
 
-    hash.update(data)
-    size = len(data)
+    fragNo = 1
 
+    # Return a fragments list
+    Fragment(data, output)
 
-    lpdu = []
-    lpdu.append(dst)
-    lpdu.append(Parity(dst))
-    lpdu.append(src)
-    lpdu.append(Parity(src))
-    lpdu.append(type)
-    lpdu.append(Parity(type))
-    lpdu.append(frag)
-    lpdu.append(Parity(frag))
-    lpdu.append(str("{0:b}".format(sn).zfill(3)))
-    lpdu.append(Parity(str("{0:b}".format(sn))))
-    lpdu.append(str("{0:b}".format(size).zfill(4)))
-    lpdu.append(Parity(str("{0:b}".format(size))))
-    lpdu.append(data)
-    lpdu.append(str(bin(int(hash.hexdigest(), 16))[2:].zfill(8)))
-    lpdu.append(Parity(str(bin(int(hash.hexdigest(), 16))[2:])))
+    # Consider each fragment
+    for fragData in output:
 
-    # lpdu = ""
-    # lpdu += dst
-    # lpdu += Parity(dst)
-    # lpdu += src
-    # lpdu += Parity(src)
-    # lpdu += type
-    # lpdu += Parity(type)
-    # lpdu += frag
-    # lpdu += Parity(frag)
-    # lpdu += str(sn)
-    # lpdu += Parity(str(sn))
-    # lpdu += "{0:b}".format(size)
-    # lpdu += Parity("{0:b}".format(size))
-    # lpdu += data
-    # lpdu += (str(hash.hexdigest()))
-    # lpdu += Parity(str(hash.hexdigest()))
+        print("Considering frag #" + str(fragNo) + " => " + str(fragData))
 
-    slpdu = ''.join(lpdu)
+        # FCS-CRC
+        hash.update(fragData)
+        size = len(fragData)
 
-    # print(slpdu)
-    # print(sn)
+        lpdu = []
+        lpdu.append(dst)
+        lpdu.append(Parity(dst))
+        lpdu.append(src)
+        lpdu.append(Parity(src))
+        lpdu.append(type)
+        lpdu.append(Parity(type))
+        lpdu.append(str(fragNo))
+        lpdu.append(Parity(str(fragNo)))
+        lpdu.append(str("{0:b}".format(sn).zfill(3)))
+        lpdu.append(Parity(str("{0:b}".format(sn))))
+        lpdu.append(str("{0:b}".format(size).zfill(4)))
+        lpdu.append(Parity(str("{0:b}".format(size))))
+        lpdu.append(fragData)
+        lpdu.append(str(bin(int(hash.hexdigest(), 16))[2:].zfill(8)))
+        lpdu.append(Parity(str(bin(int(hash.hexdigest(), 16))[2:])))
 
-    lpduSent[sn] = slpdu
+        fragNo = fragNo + 1
+        slpdu = ''.join(lpdu)
 
-    if sn != 0 and (sn % 7) == 0 :
-        sn = 0
-    else :
-        sn += 1
+        # Debug
+        print("Sequence #" + str(sn) + " output SLPDU : " + slpdu)
+
+        lpduSent[sn] = slpdu
+
+        # Update sequence number
+        if sn != 0 and (sn % 7) == 0:
+            sn = 0
+        else:
+            sn += 1
 
     return slpdu
 
@@ -187,9 +187,9 @@ def ReceivePPDU(p):
             trm.frag = p.load[11:13]
             trm.sn = p.load[13:17]
             trm.size = p.load[17:23]
-            
+
             length = int(trm.size[0:5], 2)
-            
+
             trm.payload = p.load[23:23+length]
             trm.crc = p.load[23+length:23+length+8]
 
@@ -216,12 +216,16 @@ Sortie : Fragments d'au plus 27 bits
 '''
 
 
-def Fragment(NPDU):
+def Fragment(NPDU, output):
     # assert we have max. 60 bits
     # max payload size is defined as constants in the header
 
+    print("\n\n====================")
+    print("Function : Fragment ")
+    print("======================")
+
     lengthNPDU = len(NPDU)
-    print(NPDU + " [ length = " + str(lengthNPDU) + " ]")
+    print("NPUD received : " + NPDU + " [ length = " + str(lengthNPDU) + " ]")
 
     nbFrag = int(math.ceil(float(lengthNPDU) / MAX_SIZE_PAYLOAD))
     print("Nombres de fragments : " + str(nbFrag))
@@ -231,12 +235,15 @@ def Fragment(NPDU):
         payloadRange = NPDU[i * MAX_SIZE_PAYLOAD:(i + 1) * MAX_SIZE_PAYLOAD]
         print("Fragment #" + str(i) + " : [ " + str((i * MAX_SIZE_PAYLOAD)) + " : " + str(
             ((i + 1) * MAX_SIZE_PAYLOAD)) + " ] => " + str(payloadRange))
+        output.append(payloadRange)
         del payloadRange
-        i += 1
-        nbFrag -= 1
+
+        i = i + 1
+        nbFrag = nbFrag - 1
 
     print("Fragment #" + str(i) + " : [ " + str((i * MAX_SIZE_PAYLOAD)) + " : " + str(len(NPDU)) + " ] => " + str(
         NPDU[i * MAX_SIZE_PAYLOAD:(i + 1) * MAX_SIZE_PAYLOAD]))
+    output.append(NPDU[i * MAX_SIZE_PAYLOAD:(i + 1) * MAX_SIZE_PAYLOAD])
 
 def Defragment():
     name = "complement frag"
@@ -253,7 +260,9 @@ if __name__ == '__main__':
     src = "001"
 
     NPDU = "00010101000101010010101010010010010000111010100010110100111"  # 59 bits
-    Fragment(NPDU)
+    # Fragment(NPDU)
+
+    CreateLPDU(dst, src, "0", NPDU)
 
 '''
     PPDUtoSend = "00010101000101010010101010010010010000111010100010110100111"  # 59 bits
