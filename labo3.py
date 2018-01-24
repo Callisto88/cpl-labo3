@@ -15,7 +15,7 @@ Imports
 #from scapy.all import *
 #import logging
 import crc8
-import binascii
+#import binascii
 import math
 
 # Set log level to benefit from Scapy warnings
@@ -77,11 +77,8 @@ def DisplayPacket(trm):
     print("Fragment : " + trm.frag[0:1] + "[" + trm.frag[1:2] + "]")
     print("Séquence No : " + trm.sn[0:3] + "[" + trm.sn[3:4] + "]")
     print("Taille : " + trm.size[0:5] + "[" + trm.size[5:6] + "]")
-
-    # TODO : Découpage du payload selon la taille
-    # TODO : Découpage des 8 derniers bits de FCS-CRC
-    # print("Payload : " + sn[0:3] + "[" + sn[3:4] + "]")
-    # print("FCS-CRC : " + sn[0:3] + "[" + sn[3:4] + "]")
+    print("Payload : " + trm.payload)
+    print("FCS-CRC : " + trm.crc[0:8] + "[" + trm.crc[8:9] + "]")
     print("---------------------")
 
 
@@ -190,6 +187,11 @@ def ReceivePPDU(p):
             trm.frag = p.load[11:13]
             trm.sn = p.load[13:17]
             trm.size = p.load[17:23]
+            
+            length = int(trm.size[0:5], 2)
+            
+            trm.payload = p.load[23:23+length]
+            trm.crc = p.load[23+length:23+length+8]
 
             # Verifiy parity bit for every field, if any is incorrect return
             if trm.src[-1] != Parity(trm.src) or \
@@ -230,8 +232,8 @@ def Fragment(NPDU):
         print("Fragment #" + str(i) + " : [ " + str((i * MAX_SIZE_PAYLOAD)) + " : " + str(
             ((i + 1) * MAX_SIZE_PAYLOAD)) + " ] => " + str(payloadRange))
         del payloadRange
-        i = i + 1
-        nbFrag = nbFrag - 1
+        i += 1
+        nbFrag -= 1
 
     print("Fragment #" + str(i) + " : [ " + str((i * MAX_SIZE_PAYLOAD)) + " : " + str(len(NPDU)) + " ] => " + str(
         NPDU[i * MAX_SIZE_PAYLOAD:(i + 1) * MAX_SIZE_PAYLOAD]))
