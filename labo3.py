@@ -12,11 +12,12 @@
 Imports
 '''
 # Import all modules
-#from scapy.all import *
+from scapy.all import *
 #import logging
 import crc8
 #import binascii
 import math
+import sys
 
 # Set log level to benefit from Scapy warnings
 #logging.getLogger("scapy").setLevel(1)
@@ -66,8 +67,9 @@ lpduSent = [ [ None for y in range( 1 ) ] for x in range( 8 ) ]
 
 # Basic function to display packet fields
 def DisplayPacket(trm):
+
     print("---------------------")
-    trm.show()    # Packet summary
+    # trm.show()    # Packet summary
 
     print("---------------------")
     print("Splitting frame's load\n")
@@ -117,6 +119,11 @@ def CreateLPDU(dst, src, type, data):
         hash.update(fragData)
         size = len(fragData)
 
+        if str(fragData) == str(output[-1]):
+            isFragment = "0"
+        else:
+            isFragment = "1"
+
         lpdu = []
         lpdu.append(dst)
         lpdu.append(Parity(dst))
@@ -124,11 +131,11 @@ def CreateLPDU(dst, src, type, data):
         lpdu.append(Parity(src))
         lpdu.append(type)
         lpdu.append(Parity(type))
-        lpdu.append(str(fragNo))
-        lpdu.append(Parity(str(fragNo)))
+        lpdu.append(str(isFragment))
+        lpdu.append(Parity(str(isFragment)))
         lpdu.append(str("{0:b}".format(sn).zfill(3)))
         lpdu.append(Parity(str("{0:b}".format(sn))))
-        lpdu.append(str("{0:b}".format(size).zfill(4)))
+        lpdu.append(str("{0:b}".format(size).zfill(5)))
         lpdu.append(Parity(str("{0:b}".format(size))))
         lpdu.append(fragData)
         lpdu.append(str(bin(int(hash.hexdigest(), 16))[2:].zfill(8)))
@@ -138,7 +145,7 @@ def CreateLPDU(dst, src, type, data):
         slpdu = ''.join(lpdu)
 
         # Debug
-        print("Sequence #" + str(sn) + " output SLPDU : " + slpdu)
+        print("Sequence #" + str(sn) + " output LPDU : " + slpdu)
 
         lpduSent[sn] = slpdu
 
@@ -147,6 +154,8 @@ def CreateLPDU(dst, src, type, data):
             sn = 0
         else:
             sn += 1
+
+        SendPPDU(slpdu)
 
     return slpdu
 
@@ -178,23 +187,29 @@ def ReceivePPDU(p):
 
     if hasattr(p, 'load'):
 
-        trm = trame();
+        trm = trame()
 
         # Spliting the load
         trm.dst = p.load[0:5]
 
-        if trm.dst == "00011" and trm.dst[-1] == Parity(trm.dst[0:4]):
+        if trm.dst == "01001":
+
+            print(p.load)
 
             trm.src = p.load[5:9]
             trm.type = p.load[9:11]
             trm.frag = p.load[11:13]
             trm.sn = p.load[13:17]
             trm.size = p.load[17:23]
-            
+
             length = int(trm.size[0:5], 2)
-            
+
+            print(trm.size)
+            print(trm.size[-1])
+
             trm.payload = p.load[23:23+length]
-            trm.crc = p.load[23+length:23+length+8]
+            trm.crc = p.load[23 + length:23 + length + 9]
+
 
             # add check of CRC
             # Verifiy parity bit for every field, if any is incorrect send NACK
@@ -203,15 +218,15 @@ def ReceivePPDU(p):
                 trm.frag[-1] != Parity(trm.frag[0:1]) or \
                 trm.sn[-1] != Parity(trm.sn[0:3]) or \
                 trm.size[-1] != Parity(trm.size[0:5]):
-
                 print("Parity check failed");
+
                 # CreateLPDU("0" + trm.src[0:3], trm.dst[1:4], "1", "1")
                 return
             else:
                 lpduRec[int(trm.sn[0:3], 2)] = trm
                 # CreateLPDU("0" + trm.src[0:3], trm.dst[1:4], "1", "0")
 
-            DisplayPacket(trm)
+        DisplayPacket(trm)
 
 
 '''
@@ -273,11 +288,25 @@ def Defragment(fragment, last, output):
 #----------------------- Scapy CPL -----------------------
 # Envoyer des paquets avec payload
 if __name__ == '__main__':
-    dst = "0100"
-    src = "001"
 
-    NPDU = "00010101000101010010101010010010010000111010100010110100111"  # 59 bits
-    # Fragment(NPDU)
+    argv = sys.argv
+    # 010010011001100001110010001010100010101001010101001101001001
+
+    if str(argv[1]) == "sender":
+        dst = "0100"
+        src = "001"
+        NPDU = "00010101000101010010101010010010010000111010100010110100111"  # 59 bits
+        CreateLPDU(dst, src, "0", NPDU)
+        # SendPPDU(LPDU)
+
+    elif str(argv[1]) == "receiver":
+        a = sniff(filter="ether dst ffffffffffff and ether src b8e856069eaa", prn=ReceivePPDU)
+
+    else:
+        print("Please choose either 'sender' or 'receiver' argument")
+
+    # LPDU = "0100100110000010100110111011101011"
+    # ReceivePPDU(LPDU)
 
     # frag = []
     # frag.append("0001010100010101001010101001")
@@ -291,7 +320,7 @@ if __name__ == '__main__':
     # Defragment("0", True, output)
     #print(output)
 
-    CreateLPDU(dst, src, "0", NPDU)
+
 
 '''
     PPDUtoSend = "00010101000101010010101010010010010000111010100010110100111"  # 59 bits
