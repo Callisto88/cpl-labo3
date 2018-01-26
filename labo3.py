@@ -192,7 +192,7 @@ def ReceivePPDU(p):
         # Spliting the load
         trm.dst = p.load[0:5]
 
-        if trm.dst == "01001":
+        if trm.dst == "00101":
 
             print(p.load)
 
@@ -204,24 +204,24 @@ def ReceivePPDU(p):
 
             length = int(trm.size[0:5], 2)
 
-            print(trm.size)
-            print(trm.size[-1])
-
             trm.payload = p.load[23:23+length]
             trm.crc = p.load[23 + length:23 + length + 9]
 
 
-            # add check of CRC
+            # need add check of CRC
+            hash.update(trm.payload)
             # Verifiy parity bit for every field, if any is incorrect send NACK
             if trm.src[-1] != Parity(trm.src[0:3]) or \
                 trm.type[-1] != Parity(trm.type[0:1]) or \
                 trm.frag[-1] != Parity(trm.frag[0:1]) or \
                 trm.sn[-1] != Parity(trm.sn[0:3]) or \
                 trm.size[-1] != Parity(trm.size[0:5]):
-                print("Parity check failed");
+                print("Parity check failed")
+            if str(bin(int(hash.hexdigest(), 16))[2:].zfill(8)) != trm.crc8:
+                print("CRC check failed")
 
                 # CreateLPDU("0" + trm.src[0:3], trm.dst[1:4], "1", "1")
-                return
+                #return
             else:
                 lpduRec[int(trm.sn[0:3], 2)] = trm
                 # CreateLPDU("0" + trm.src[0:3], trm.dst[1:4], "1", "0")
